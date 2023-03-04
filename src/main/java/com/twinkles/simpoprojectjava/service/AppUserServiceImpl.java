@@ -6,7 +6,7 @@ import com.flutterwave.rave.java.entry.bvnValidation;
 import com.flutterwave.rave.java.payload.bvnload;
 import com.twinkles.simpoprojectjava.dtos.requests.CastVoteRequest;
 import com.twinkles.simpoprojectjava.dtos.requests.CreateAccountRequest;
-import com.twinkles.simpoprojectjava.dtos.requests.ViewPresidentialResultResponse;
+import com.twinkles.simpoprojectjava.dtos.requests.ViewResultResponse;
 import com.twinkles.simpoprojectjava.dtos.responses.CastVoteResponse;
 import com.twinkles.simpoprojectjava.dtos.responses.CreateAccountResponse;
 import com.twinkles.simpoprojectjava.dtos.responses.ValidateBVNResponse;
@@ -17,9 +17,7 @@ import com.twinkles.simpoprojectjava.repository.CandidateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.EnumSet;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 
 @Service
@@ -153,9 +151,42 @@ public class AppUserServiceImpl implements AppUserService{
     }
 
     @Override
-    public ViewPresidentialResultResponse viewPresidentialResultInPercentage() {
+    public ViewResultResponse viewPresidentialResultInPercentage() {
         List<Candidate> presidentialCandidates = candidateRepository.findCandidateByVoteCategory(VoteCategory.PRESIDENCY);
-        return null;
+        return getResultFor(presidentialCandidates);
+    }
+
+    @Override
+    public ViewResultResponse viewGovernorshipResultInPercentage() {
+        List<Candidate> governorshipCandidates = candidateRepository.findCandidateByVoteCategory(VoteCategory.GOVERNORSHIP);
+        return getResultFor(governorshipCandidates);
+    }
+
+    private ViewResultResponse getResultFor(List<Candidate> candidates) {
+        long total = candidates.stream().mapToLong(Candidate::getVoteCount).count();
+        Map<String, String> result = new HashMap<>();
+        for(Candidate candidate : candidates){
+            result.put(candidate.getParty().toString(), String.valueOf(candidate.getVoteCount()/total *100));
+        }
+        return new ViewResultResponse(result);
+    }
+
+    @Override
+    public ViewResultResponse viewHouseOfRepresentativeResultInPercentage() {
+        List<Candidate> houseOfRepCandidates = candidateRepository.findCandidateByVoteCategory(VoteCategory.HOUSE_OF_REPRESENTATIVE);
+        return getResultFor(houseOfRepCandidates);
+    }
+
+    @Override
+    public ViewResultResponse viewSenateResultInPercentage() {
+        List<Candidate> senateCandidates = candidateRepository.findCandidateByVoteCategory(VoteCategory.SENATE);
+        return getResultFor(senateCandidates);
+    }
+
+    @Override
+    public ViewResultResponse viewHouseOfAssemblyResultInPercentage() {
+        List<Candidate> houseOfAssemblyCandidates = candidateRepository.findCandidateByVoteCategory(VoteCategory.HOUSE_OF_ASSEMBLY);
+        return getResultFor(houseOfAssemblyCandidates);
     }
 
     private AppUser buildAppUser(CreateAccountRequest createAccountRequest, ValidateBVNResponse validateBVNResponse) {

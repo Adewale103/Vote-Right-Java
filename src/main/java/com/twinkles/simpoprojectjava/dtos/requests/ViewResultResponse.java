@@ -11,6 +11,6 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ViewPresidentialResultResponse {
+public class ViewResultResponse {
     Map<String, String> result;
 }

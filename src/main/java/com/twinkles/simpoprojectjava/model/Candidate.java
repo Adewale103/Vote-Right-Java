@@ -12,5 +12,5 @@ public class Candidate {
     private String fullName;
     private Party party;
     private VoteCategory voteCategory;
-    private int voteCount;
+    private long voteCount;
 }
