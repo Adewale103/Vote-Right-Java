@@ -15,6 +15,7 @@ import com.twinkles.simpoprojectjava.model.*;
 import com.twinkles.simpoprojectjava.repository.AppUserRepository;
 import com.twinkles.simpoprojectjava.repository.CandidateRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -23,6 +24,8 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class AppUserServiceImpl implements AppUserService{
+
+    private final KafkaTemplate<String, CastVoteRequest> kafkaTemplate;
     private final AppUserRepository appUserRepository;
     private final CandidateRepository candidateRepository;
 
@@ -57,32 +60,29 @@ public class AppUserServiceImpl implements AppUserService{
         return new CastVoteResponse("You have successfully casted your vote for your preferred presidential candidate");
     }
 
-    private Candidate checkCandidateValidity(CastVoteRequest castVoteRequest) {
-        if(!partyIsValid(castVoteRequest)) {
-            throw new SimpoProjectException("Incorrect party name", 400);
-        }
-        Candidate candidate = candidateRepository.findCandidateByVoteCategoryAndParty(VoteCategory.valueOf(castVoteRequest.getVoteCategory()),Party.valueOf(castVoteRequest.getParty()));
-        if(candidate == null){
-            throw new SimpoProjectException("No candidate found!", 400);
-        }
-        return candidate;
-    }
 
     @Override
     public CastVoteResponse castVoteForGovernorship(CastVoteRequest castVoteRequest) {
-        AppUser appUser = validateUserCredentials(castVoteRequest);
-        if(appUser.isHasVotedForGovernor()){
-            throw new SimpoProjectException("You have already cast your vote for your preferred candidate", 400);
+        try {
+            AppUser appUser = validateUserCredentials(castVoteRequest);
+            if(appUser.isHasVotedForGovernor()){
+                throw new SimpoProjectException("You have already cast your vote for your preferred candidate", 400);
+            }
+            if(!VoteCategory.valueOf(castVoteRequest.getVoteCategory().toUpperCase()).equals(VoteCategory.GOVERNORSHIP)){
+                throw new SimpoProjectException("Invalid vote category", 400);
+            }
+            Candidate candidate = checkCandidateValidity(castVoteRequest);
+            candidate.setVoteCount(candidate.getVoteCount()+ 1);
+            appUser.setHasVotedForGovernor(true);
+            appUserRepository.save(appUser);
+            candidateRepository.save(candidate);
+            return new CastVoteResponse("You have successfully casted your vote for your preferred governorship candidate");
+        } catch (Exception ex) {
+            // If an error occurs, publish the message to the Kafka topic
+            String topicName = "vote-casting-topic";
+            kafkaTemplate.send(topicName, castVoteRequest);
+            throw new SimpoProjectException("An error occurred while processing your request, please try again later", 500);
         }
-        if(!VoteCategory.valueOf(castVoteRequest.getVoteCategory().toUpperCase()).equals(VoteCategory.GOVERNORSHIP)){
-            throw new SimpoProjectException("Invalid vote category", 400);
-        }
-        Candidate candidate = checkCandidateValidity(castVoteRequest);
-        candidate.setVoteCount(candidate.getVoteCount()+ 1);
-        appUser.setHasVotedForGovernor(true);
-        appUserRepository.save(appUser);
-        candidateRepository.save(candidate);
-        return new CastVoteResponse("You have successfully casted your vote for your preferred governorship candidate");
     }
 
     private AppUser validateUserCredentials(CastVoteRequest castVoteRequest) {
