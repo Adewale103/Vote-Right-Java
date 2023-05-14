@@ -14,6 +14,7 @@ import com.twinkles.simpoprojectjava.exceptions.SimpoProjectException;
 import com.twinkles.simpoprojectjava.model.*;
 import com.twinkles.simpoprojectjava.repository.AppUserRepository;
 import com.twinkles.simpoprojectjava.repository.CandidateRepository;
+import com.twinkles.simpoprojectjava.utils.UtilsClass;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class AppUserServiceImpl implements AppUserService{
     private final KafkaTemplate<String, CastVoteRequest> kafkaTemplate;
     private final AppUserRepository appUserRepository;
     private final CandidateRepository candidateRepository;
+    private final UtilsClass utilsClass;
 
     @Override
     public CreateAccountResponse createAccount(CreateAccountRequest createAccountRequest) throws JsonProcessingException {
@@ -52,7 +54,7 @@ public class AppUserServiceImpl implements AppUserService{
         if(!VoteCategory.valueOf(castVoteRequest.getVoteCategory().toUpperCase()).equals(VoteCategory.PRESIDENCY)){
             throw new SimpoProjectException("Invalid vote category", 400);
         }
-        Candidate candidate = checkCandidateValidity(castVoteRequest);
+        Candidate candidate = utilsClass.checkCandidateValidity(castVoteRequest);
         candidate.setVoteCount(candidate.getVoteCount()+ 1);
         appUser.setHasVotedForPresident(true);
         appUserRepository.save(appUser);
@@ -71,7 +73,7 @@ public class AppUserServiceImpl implements AppUserService{
             if(!VoteCategory.valueOf(castVoteRequest.getVoteCategory().toUpperCase()).equals(VoteCategory.GOVERNORSHIP)){
                 throw new SimpoProjectException("Invalid vote category", 400);
             }
-            Candidate candidate = checkCandidateValidity(castVoteRequest);
+            Candidate candidate = utilsClass.checkCandidateValidity(castVoteRequest);
             candidate.setVoteCount(candidate.getVoteCount()+ 1);
             appUser.setHasVotedForGovernor(true);
             appUserRepository.save(appUser);
@@ -93,12 +95,6 @@ public class AppUserServiceImpl implements AppUserService{
         return appUser;
     }
 
-    private static boolean partyIsValid(CastVoteRequest castVoteRequest) {
-        return EnumSet.allOf(Party.class)
-                .stream()
-                .anyMatch(party -> party.getName().equals(castVoteRequest.getParty().toUpperCase()));
-    }
-
     @Override
     public CastVoteResponse castVoteForHouseOfRepresentative(CastVoteRequest castVoteRequest) {
         AppUser appUser = validateUserCredentials(castVoteRequest);
@@ -108,7 +104,7 @@ public class AppUserServiceImpl implements AppUserService{
         if(!VoteCategory.valueOf(castVoteRequest.getVoteCategory().toUpperCase()).equals(VoteCategory.HOUSE_OF_REPRESENTATIVE)){
             throw new SimpoProjectException("Invalid vote category", 400);
         }
-        Candidate candidate = checkCandidateValidity(castVoteRequest);
+        Candidate candidate = utilsClass.checkCandidateValidity(castVoteRequest);
         candidate.setVoteCount(candidate.getVoteCount()+ 1);
         appUser.setHasVotedForHouseOfRepMember(true);
         appUserRepository.save(appUser);
@@ -125,7 +121,7 @@ public class AppUserServiceImpl implements AppUserService{
         if(!VoteCategory.valueOf(castVoteRequest.getVoteCategory().toUpperCase()).equals(VoteCategory.SENATE)){
             throw new SimpoProjectException("Invalid vote category", 400);
         }
-        Candidate candidate = checkCandidateValidity(castVoteRequest);
+        Candidate candidate = utilsClass.checkCandidateValidity(castVoteRequest);
         candidate.setVoteCount(candidate.getVoteCount()+ 1);
         appUser.setHasVotedForSenateMember(true);
         appUserRepository.save(appUser);
@@ -142,7 +138,7 @@ public class AppUserServiceImpl implements AppUserService{
         if(!VoteCategory.valueOf(castVoteRequest.getVoteCategory().toUpperCase()).equals(VoteCategory.HOUSE_OF_ASSEMBLY)){
             throw new SimpoProjectException("Invalid vote category", 400);
         }
-        Candidate candidate = checkCandidateValidity(castVoteRequest);
+        Candidate candidate = utilsClass.checkCandidateValidity(castVoteRequest);
         candidate.setVoteCount(candidate.getVoteCount()+ 1);
         appUser.setHasVotedForHouseOfAssemblyMember(true);
         appUserRepository.save(appUser);
